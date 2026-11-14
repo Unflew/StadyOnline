@@ -1,0 +1,36 @@
+# Две базы для разработки: MySQL (курсы, пользователи, задания) и MongoDB (лента, журнал, входы, достижения).
+# Запуск: docker compose up -d        Остановка: docker compose down   (данные сохраняются в томах)
+# Порты открыты только на localhost. Для реальной работы смените пароли и передайте их в приложение
+# переменными MYSQL_PASSWORD / MONGO_URI (см. README).
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-change-me}
+      MYSQL_DATABASE: teamonline
+      MYSQL_USER: teamonline
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-teamonline}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports: ["127.0.0.1:3306:3306"]
+    volumes: ["mysql_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root-change-me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: ["mongo_data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_data:
+  mongo_data:

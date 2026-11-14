@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Задания — {{ c.title }}{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  {% include "_head.html" %}
+  {% include "_tabs.html" %}
+
+  <section class="card pcard">
+    <div class="pc-head">
+      <div>
+        <h2>Задания и оценки</h2>
+        <p class="muted">{{ items|length }} {{ plural(items|length, ('задание', 'задания', 'заданий')) }}{% if pending %} · <b class="warn">{{ pending }}</b> {{ plural(pending, ('работа ждёт', 'работы ждут', 'работ ждут')) }} проверки{% endif %}</p>
+      </div>
+      <button class="pbtn primary" type="button" data-assign-add="/api/courses/{{ c.id }}/assignments">+ Добавить задание</button>
+    </div>
+
+    {% if items %}
+    <div class="ptable" style="--cols: minmax(0,1fr) 92px 96px 100px 130px 124px 150px">
+      <div class="pt-head"><span>Задание</span><span>Срок</span><span>Сдали</span><span>На проверке</span><span>Средний балл</span><span>Сложность</span><span></span></div>
+      {% for a in items %}
+      <div class="pt-row">
+        <span class="pt-title">
+          <a href="/assignment/{{ a.id }}">{{ a.title }}</a>
+          <small>{{ a.module_title or 'Без модуля' }}{% if a.answer_key %} · автопроверка{% endif %}</small>
+        </span>
+        <span class="muted">{{ a.due_ru or '—' }}</span>
+        <span>{{ a.n_sub }} из {{ a.enrolled }}</span>
+        <span>{% if a.pending %}<a class="pill p-yellow" href="/assignment/{{ a.id }}">{{ a.pending }} на проверку</a>{% else %}<span class="muted">—</span>{% endif %}</span>
+        <span class="avg">{% if a.avg_pct is not none %}<i class="meter"><b class="{{ 'ok' if a.avg_pct >= PASS_PCT else 'bad' }}" style="width: {{ a.avg_pct }}%"></b></i><em>{{ a.avg_pct }}%</em>{% else %}<span class="muted">—</span>{% endif %}</span>
+        <span><span class="pill lvl-{{ a.level or 'none' }}" title="{% if a.index is not none %}Индекс сложности: {{ a.index }} из 100{% else %}Нужно хотя бы 3 проверенные попытки{% endif %}">{{ a.label }}</span></span>
+        <span class="pt-actions">
+          <a class="pbtn sm ghost" href="/assignment/{{ a.id }}">Работы</a>
+          <button class="pbtn sm ghost" type="button" data-assign-edit="/api/assignments/{{ a.id }}" data-a='{{ a.edit|tojson }}'>Изменить</button>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">Заданий пока нет. Нажмите «+ Добавить задание» — ученики увидят его в своём кабинете.</p>
+    {% endif %}
+  </section>
+</div>
+
+<dialog id="assign-modal" class="wide">
+  <form class="modal" id="assign-form" data-api="x" data-method="POST" method="dialog">
+    <h3 id="assign-heading">Новое задание</h3>
+    <label>Название<input class="mi" name="title" required maxlength="120" autocomplete="off"></label>
+    <div class="row2">
+      <label>Модуль
+        <select class="mi" name="module_id">
+          <option value="">Без модуля</option>
+          {% for m in modules %}<option value="{{ m.id }}">{{ m.title }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Срок сдачи<input class="mi" name="due" placeholder="ДД.ММ.ГГГГ, необязательно" inputmode="numeric"></label>
+    </div>
+    <label>Условие<textarea class="mi ta" name="description" maxlength="4000" placeholder="Что нужно сделать"></textarea></label>
+    <div class="row2">
+      <label>Максимальный балл<input class="mi" type="number" name="max_score" min="1" max="1000" value="100" required></label>
+      <label>Правильный ответ (автопроверка)<input class="mi" name="answer_key" maxlength="200" placeholder="необязательно" autocomplete="off"></label>
+    </div>
+    <p class="note">Если указать правильный ответ, ответ ученика проверяется автоматически (без учёта регистра и лишних пробелов). Иначе работу оцениваете вы. Задание считается выполненным при {{ PASS_PCT }}% баллов и выше.</p>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <button class="mb danger-link" type="button" id="assign-delete" hidden>Удалить задание</button>
+      <span style="flex:1"></span>
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

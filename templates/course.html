@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block bodyclass %}p-course{% endblock %}
+{% block content %}
+<div class="wrap">
+
+  <section class="card head-card s-{{ c.status }}">
+    <div class="bar-clip"><i></i></div>
+    <div class="a h-row"><h1>{{ c.title }}</h1><span class="h-badge st-c-{{ c.status }}">{{ c.pill }}</span></div>
+    <p class="a h-meta">{{ c.span }} / Куратор: {{ c.curator }} / Учащихся {{ c.enrolled }} из {{ c.capacity }}</p>
+    {% if is_admin %}
+    <button class="a hb hb-archive" type="button" data-post="/api/courses/{{ c.id }}/archive"
+            data-confirm="Архивировать курс «{{ c.title }}»? Он исчезнет из списка курсов.">Архивировать</button>
+    <button class="a hb hb-delete" type="button" data-delete="/api/courses/{{ c.id }}"
+            data-confirm="Удалить курс «{{ c.title }}» вместе со студентами, заданиями и событиями?">Удалить</button>
+    {% else %}
+    <a class="a hb hb-archive" href="/" style="display:grid;place-items:center">← К курсам</a>
+    {% endif %}
+    <button class="a hb hb-save" type="submit" form="overview">Сохранить</button>
+  </section>
+
+  {% include "_tabs.html" %}
+
+  <div class="cols2">
+    <div class="col-l">
+
+      <section class="card ov-card" id="about">
+        <h2 class="a sec-title" style="left:31px; top:12px">Основная информация</h2>
+        <form id="overview" data-api="/api/courses/{{ c.id }}" data-method="PATCH" data-toast="Изменения сохранены" onsubmit="return false">
+          <label class="fl" style="left:31px; top:40.5px">Название курса</label>
+          <input class="fld" style="left:31px; top:59px" name="title" value="{{ c.title }}" maxlength="80" required>
+          <label class="fl" style="left:444px; top:40.5px">Направление</label>
+          <input class="fld" style="left:444px; top:59px" name="direction" value="{{ c.direction }}" maxlength="60">
+
+          <label class="fl" style="left:31px; top:100.5px">Дата начала</label>
+          <input class="fld" style="left:31px; top:119px" name="start_date" value="{{ c.start_ru }}" placeholder="ДД.ММ.ГГГГ" inputmode="numeric" required>
+          <label class="fl" style="left:444px; top:100.5px">Дата окончания</label>
+          <input class="fld" style="left:444px; top:119px" name="end_date" value="{{ c.end_ru }}" placeholder="ДД.ММ.ГГГГ" inputmode="numeric" required>
+
+          <label class="fl" style="left:31px; top:160.5px">Вместимость</label>
+          <input class="fld" style="left:31px; top:179px" name="capacity" type="number" min="1" max="500" value="{{ c.capacity }}" required>
+          <label class="fl" style="left:444px; top:160.5px">Куратор</label>
+          <span class="fld-sel" style="left:444px; top:179px"><select class="fld" name="curator_id"{% if not is_admin %} disabled title="Куратора назначает администратор"{% endif %}>
+            {% for cu in curators %}<option value="{{ cu.id }}"{% if cu.id == c.curator_id %} selected{% endif %}>{{ cu.name }}</option>{% endfor %}
+          </select></span>
+
+          <label class="fl" style="left:31px; top:220.5px">Описание</label>
+          <input class="fld wide" style="left:31px; top:239px" name="description" value="{{ c.description }}" maxlength="400">
+        </form>
+      </section>
+
+      <section class="card pg-card" id="program">
+        <h2 class="a sec-title" style="left:32px; top:15px">Программа курса</h2>
+        <button class="a add-mod" type="button" data-module-add="/api/courses/{{ c.id }}/modules">+ Добавить модуль</button>
+        <div class="mods">
+          {% for m in modules %}
+          <div class="mod">
+            <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="mno">{{ loop.index }}</span>
+            <b class="mt">{{ m.title }}</b>
+            <span class="ms">{{ m.sub }}</span>
+            <button class="mbtn" type="button" data-module-edit="/api/modules/{{ m.id }}"
+                    data-title="{{ m.title }}" data-lessons="{{ m.lessons }}" data-tasks="{{ m.tasks }}" data-video="{{ m.video_hours }}">Изменить</button>
+          </div>
+          {% else %}
+          <p class="mods-empty">Модулей пока нет. Нажмите «+ Добавить модуль».</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card st-card" id="students" data-course="{{ course_id }}">
+        <div class="a st-head"><h2>Студенты курса</h2><span>Логин и пароль выдаёт куратор</span></div>
+        <input class="a st-search" id="student-search" type="search" placeholder="Поиск студента" autocomplete="off">
+        <button class="a st-add" type="button" data-open="add-student">+ Добавить студента</button>
+        <div class="tbl" id="students-body">{% include "_students.html" %}</div>
+      </section>
+    </div>
+
+    <aside class="col-r">
+
+      <section class="card pr-card">
+        <h3 class="a r-title">Прогресс курса</h3>
+        <div class="ring" role="img" aria-label="Прогресс курса {{ c.pct }}%">
+          <svg viewBox="0 0 85 85">
+            <circle cx="42.5" cy="42.5" r="38" class="ring-track"/>
+            <circle cx="42.5" cy="42.5" r="38" class="ring-arc" transform="rotate({{ -(90 + c.pct * 1.2) }} 42.5 42.5)"
+                    stroke-dasharray="{{ (c.pct / 150 * 238.76)|round(1) }} 238.76"/>
+          </svg>
+          <b>{{ c.pct }}%</b>
+        </div>
+        {% if c.status == 'active' %}
+          <p class="a pr-1">День {{ c.day }} из {{ c.total }}</p>
+          <p class="a pr-2">Осталось {{ c.left }} {{ days_word(c.left) }}</p>
+        {% elif c.status == 'upcoming' %}
+          <p class="a pr-1">{{ c.label }}</p>
+          <p class="a pr-2">Начало {{ c.start_ru }}</p>
+        {% else %}
+          <p class="a pr-1">Курс завершён</p>
+          <p class="a pr-2">{{ c.end_ru }}</p>
+        {% endif %}
+        <p class="a pr-3">Завершили: {{ c.done }} из {{ c.enrolled }}</p>
+      </section>
+
+      <section class="card cu-card">
+        <h3 class="a r-title">Куратор</h3>
+        <div class="a avatar lg" style="left:22px; top:44px">{{ initials }}</div>
+        <p class="a cu-name">{{ curator.last_name }}</p>
+        <p class="a cu-sub">Курсов: {{ cur_stats.courses }} / студентов: {{ cur_stats.students }}</p>
+        {% if is_admin %}<button class="a cu-btn" type="button" data-open="change-curator">Сменить куратора</button>{% endif %}
+      </section>
+
+      <section class="card ac-card">
+        <h3 class="a big-title" style="left:17.6px; top:17.3px">Активность на курсе</h3>
+        <div class="bars">
+          {% for b in bars %}
+            <div class="bcol" title="{{ b.title }}"><i class="{% if b.weekend %}light{% endif %}" style="height: {{ b.h }}px"></i><span>{{ b.label }}</span></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card ce-card" id="events">
+        <h3 class="a big-title" style="left:22.8px; top:17.1px">События курса</h3>
+        <div class="cev-list">
+          {% for ev in events %}
+            {% set ic = EVENT_ICONS.get(ev.kind, ('blue', '•')) %}
+            <div class="cev">
+              <span class="ev-ico sm {{ ic[0] }}">{{ ic[1] }}</span>
+              <p class="cev-t" title="{{ ev.text }}">{{ ev.text }}</p>
+              <span class="cev-d">{{ ev.created_at|rel }}</span>
+            </div>
+          {% else %}
+            <p class="mods-empty" style="padding:0 27px">Событий пока нет.</p>
+          {% endfor %}
+        </div>
+        {% if ev_total %}
+          <a class="a ce-all" href="/course/{{ c.id }}{{ '' if all_events else '?events=all' }}#events">{{ 'Свернуть' if all_events else 'Все события' }}</a>
+        {% endif %}
+      </section>
+    </aside>
+  </div>
+</div>
+
+<dialog id="add-student">
+  <form class="modal" data-api="/api/courses/{{ c.id }}/students" data-method="POST" method="dialog">
+    <h3>Добавить студента</h3>
+    <label>Студент
+      <select class="mi" name="student_id" id="student-pick">
+        <option value="">Новый студент</option>
+        {% for s in candidates %}<option value="{{ s.id }}">{{ s.full_name }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="new-fields">
+      <label>Фамилия и имя
+        <input class="mi" name="full_name" placeholder="Иванов Пётр" required maxlength="80" autocomplete="off">
+      </label>
+      <div class="row2">
+        <label>Логин<input class="mi" name="login" placeholder="ivanov.p" required minlength="3" maxlength="32" autocomplete="off" autocapitalize="none"></label>
+        <label>Пароль<input class="mi" name="password" type="text" required minlength="6" autocomplete="new-password"></label>
+      </div>
+      <p class="note">Для нового студента создаётся личный кабинет — передайте ему логин и пароль.</p>
+    </div>
+    <p class="note">Свободных мест: {{ [c.capacity - c.enrolled, 0]|max }}</p>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Добавить</button>
+    </div>
+  </form>
+</dialog>
+
+{% if is_admin %}
+<dialog id="change-curator">
+  <form class="modal" data-api="/api/courses/{{ c.id }}/curator" data-method="POST" method="dialog">
+    <h3>Сменить куратора</h3>
+    <label>Куратор
+      <select class="mi" name="curator_id">
+        {% for cu in curators %}<option value="{{ cu.id }}"{% if cu.id == c.curator_id %} selected{% endif %}>{{ cu.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+{% endif %}
+
+<dialog id="module-modal">
+  <form class="modal" id="module-form" data-method="POST" method="dialog">
+    <h3 id="module-heading">Модуль</h3>
+    <label>Название<input class="mi" name="title" required maxlength="80"></label>
+    <div class="row3">
+      <label>Уроков<input class="mi" type="number" name="lessons" min="0" value="0"></label>
+      <label>Заданий<input class="mi" type="number" name="tasks" min="0" value="0"></label>
+      <label>Часов видео<input class="mi" type="number" name="video_hours" min="0" value="0"></label>
+    </div>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <button class="mb danger-link" type="button" id="module-delete" hidden>Удалить модуль</button>
+      <span style="flex:1"></span>
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+{% include "_pwd_modal.html" %}
+{% endblock %}

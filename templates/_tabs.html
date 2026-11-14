@@ -1,0 +1,7 @@
+<nav class="card tabs" aria-label="Разделы курса">
+  <a{% if tab == 'about' %} class="on"{% endif %} href="/course/{{ c.id }}">Обзор</a>
+  <a href="/course/{{ c.id }}#students">Студенты ({{ c.enrolled }})</a>
+  <a href="/course/{{ c.id }}#program">Программа</a>
+  <a{% if tab == 'tasks' %} class="on"{% endif %} href="/course/{{ c.id }}/tasks">Задания и оценки</a>
+  <a{% if tab == 'stats' %} class="on"{% endif %} href="/course/{{ c.id }}/stats">Статистика</a>
+</nav>

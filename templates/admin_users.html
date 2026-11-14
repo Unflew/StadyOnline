@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  <div class="ph">
+    <div><h1>Пользователи</h1><p class="muted">Учётные записи администраторов, кураторов и учеников. Куратору можно назначить курсы на странице курса.</p></div>
+    <button class="pbtn primary" type="button" data-open="new-user">+ Добавить пользователя</button>
+  </div>
+
+  {% for role, title, users in groups %}
+  <section class="card pcard">
+    <div class="pc-head">
+      <div><h2>{{ title }}</h2><p class="muted">{{ users|length }}</p></div>
+      {% if role == 'student' %}<input class="mi search-in" type="search" placeholder="Поиск по имени или логину" data-filter="#students-table" autocomplete="off">{% endif %}
+    </div>
+    <div class="ptable" id="{{ role }}s-table" style="--cols: minmax(0,1.1fr) 150px minmax(0,1.3fr) 150px 190px">
+      <div class="pt-head"><span>Имя</span><span>Логин</span><span>{{ 'Курсы' if role != 'admin' else '' }}</span><span>Последний вход</span><span></span></div>
+      {% for u in users %}
+      <div class="pt-row" data-search="{{ (u.name ~ ' ' ~ u.login)|lower }}">
+        <span>{{ u.name }}{% if u.id == me.id %} <small class="muted">(вы)</small>{% endif %}</span>
+        <span><code>{{ u.login }}</code></span>
+        <span class="muted clip" title="{{ u.info }}">{{ u.info }}</span>
+        <span class="muted">{{ u.last_login|fmtdt if u.last_login else 'ещё не входил' }}</span>
+        <span class="pt-actions">
+          <button class="pbtn sm ghost" type="button" data-pwd="/api/users/{{ u.id }}/password" data-who="{{ u.name }} · логин: {{ u.login }}">Пароль</button>
+          {% if u.id != me.id %}<button class="pbtn sm danger" type="button" data-delete="/api/users/{{ u.id }}"
+            data-confirm="Удалить {{ u.name }}?{% if u.role == 'student' %} Вместе с ним удалятся его записи на курсы, сдачи и достижения.{% endif %}">Удалить</button>{% endif %}
+        </span>
+      </div>
+      {% else %}
+      <p class="empty">Пока никого.</p>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<dialog id="new-user">
+  <form class="modal" data-api="/api/users" data-method="POST" data-toast="Пользователь создан" method="dialog">
+    <h3>Новый пользователь</h3>
+    <label>Роль
+      <select class="mi" name="role">
+        <option value="curator">Куратор</option>
+        <option value="student">Студент</option>
+        <option value="admin">Администратор</option>
+      </select>
+    </label>
+    <label>ФИО (куратору — с отчеством)<input class="mi" name="full_name" placeholder="Иванов Пётр Сергеевич" required maxlength="80" autocomplete="off"></label>
+    <div class="row2">
+      <label>Логин<input class="mi" name="login" placeholder="ivanov" required minlength="3" maxlength="32" autocomplete="off" autocapitalize="none"></label>
+      <label>Пароль<input class="mi" name="password" type="text" required minlength="6" autocomplete="new-password"></label>
+    </div>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <span style="flex:1"></span>
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Создать</button>
+    </div>
+  </form>
+</dialog>
+{% include "_pwd_modal.html" %}
+{% endblock %}

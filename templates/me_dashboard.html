@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Мой кабинет{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  <div class="ph">
+    <div><h1>Привет, {{ me.first_name }}!</h1>
+    <p class="muted">{% if todo_total %}Впереди {{ todo_total }} {{ plural(todo_total, ('задание', 'задания', 'заданий')) }}. Заходи каждый день — это копит серию и открывает достижения.{% else %}Все доступные задания выполнены или на проверке. Отличная работа!{% endif %}</p></div>
+  </div>
+
+  {% if checkin %}
+  <div class="banner ok" role="status">{{ icon('flame', 20) }}<span>Вход засчитан! Серия: <b>{{ m.streak }} {{ days_word(m.streak) }} подряд</b>.</span></div>
+  {% endif %}
+  {% for a in new %}
+  <div class="banner gold" role="status">{{ icon(a.icon, 20) }}<span>Новое достижение: <b>{{ a.title }}</b> — {{ a.desc|lower }}.</span><a class="link" href="/me/achievements">Все достижения</a></div>
+  {% endfor %}
+
+  <div class="dash-top">
+    <section class="card pcard streak">
+      <div class="streak-main">
+        <span class="flame{{ ' off' if not m.streak }}">{{ icon('flame', 38) }}</span>
+        <div>
+          <b class="streak-num">{{ m.streak }}</b>
+          <span class="streak-cap">{{ days_word(m.streak) }} подряд</span>
+        </div>
+      </div>
+      <div class="week" aria-label="Входы за последние 7 дней">
+        {% for d in strip %}<div class="wd{{ ' on' if d.on }}{{ ' today' if d.today }}"><i>{% if d.on %}{{ icon('check', 14) }}{% endif %}</i><span>{{ d.label }}</span></div>{% endfor %}
+      </div>
+      <p class="muted streak-hint">
+        {% if nxt %}До «{{ nxt.title }}» — ещё {{ nxt.target - m.streak }} {{ days_word(nxt.target - m.streak) }}. Рекорд: {{ m.best }}.
+        {% else %}Ты получил все награды за серию. Рекорд: {{ m.best }}.{% endif %}
+      </p>
+    </section>
+    <div class="card tile"><span class="tl">Выполнено заданий</span><b>{{ done }}<span class="of"> из {{ total }}</span></b><small>{% if pending %}на проверке: {{ pending }}{% else %}&nbsp;{% endif %}</small></div>
+    <div class="card tile"><span class="tl">Достижения</span><b>{{ earned }}<span class="of"> из {{ ach|length }}</span></b><small><a class="link" href="/me/achievements">Смотреть все</a></small></div>
+  </div>
+
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>Мои курсы</h2></div></div>
+    {% for c in courses %}
+    <article class="mycourse s-{{ c.status }}">
+      <div class="mc-info">
+        <h3>{{ c.title }} <span class="h-badge st-c-{{ c.status }}">{{ c.pill }}</span></h3>
+        <p class="muted">{{ c.span }} · Куратор: {{ c.curator }}</p>
+      </div>
+      <div class="mc-prog">
+        <div class="mc-line"><span>Прогресс</span><b>{{ c.progress }}%</b></div>
+        <i class="meter"><b class="{{ 'ok' if c.progress >= 100 else '' }}" style="width: {{ c.progress }}%"></b></i>
+        <p class="muted">Заданий выполнено: {{ c.n_done }} из {{ c.n_tasks }}{% if c.n_fix %} · на доработке: {{ c.n_fix }}{% endif %}</p>
+      </div>
+      <a class="pbtn primary" href="/me/tasks">К заданиям</a>
+    </article>
+    {% else %}
+    <p class="empty">Вы пока не записаны ни на один курс. Куратор добавит вас на курс — он появится здесь.</p>
+    {% endfor %}
+  </section>
+
+  <div class="two-col">
+    <section class="card pcard">
+      <div class="pc-head"><div><h2>Ближайшие задания</h2></div><a class="link" href="/me/tasks">Все задания</a></div>
+      {% for t in todo %}
+      <a class="trow" href="/me/tasks/{{ t.id }}">
+        <span class="tr-main"><b>{{ t.title }}</b><small>{{ t.course_title }}{% if t.module_title %} · {{ t.module_title }}{% endif %}</small></span>
+        <span class="{{ 'warn' if t.overdue else 'muted' }}">{% if t.due_ru %}до {{ t.due_ru }}{% endif %}</span>
+        <span class="pill {{ 'p-red' if t.state != 'new' else 'p-blue' }}">{{ t.state_label }}</span>
+      </a>
+      {% else %}
+      <p class="empty">Сейчас нет заданий, ожидающих выполнения.</p>
+      {% endfor %}
+    </section>
+
+    <section class="card pcard">
+      <div class="pc-head"><div><h2>Достижения</h2></div><a class="link" href="/me/achievements">Все</a></div>
+      <div class="ach-mini">
+        {% for a in ach|selectattr('earned')|list|sort(attribute='earned_at', reverse=true) %}{% if loop.index <= 6 %}
+        <div class="ach-chip" title="{{ a.desc }}"><span class="ach-ico k-{{ a.icon }}">{{ icon(a.icon, 20) }}</span><b>{{ a.title }}</b></div>
+        {% endif %}{% else %}
+        <p class="empty">Первые достижения уже близко — заходи каждый день и выполняй задания.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

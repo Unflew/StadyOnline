@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Достижения{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  <div class="ph"><div><h1>Достижения</h1><p class="muted">Получено {{ earned }} из {{ ach|length }}. Заходи каждый день и выполняй задания, чтобы открыть остальные.</p></div></div>
+
+  <div class="tiles">
+    <div class="card tile"><span class="tl">Серия входов</span><b>{{ m.streak }}</b><small>{{ days_word(m.streak) }} подряд</small></div>
+    <div class="card tile"><span class="tl">Лучшая серия</span><b>{{ m.best }}</b><small>{{ days_word(m.best) }} подряд</small></div>
+    <div class="card tile"><span class="tl">Всего дней в кабинете</span><b>{{ m.logins }}</b><small>за всё время</small></div>
+    <div class="card tile"><span class="tl">Заданий выполнено</span><b>{{ m.tasks }}</b><small>идеальных: {{ m.perfect }}</small></div>
+  </div>
+
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>Последние 7 дней</h2></div></div>
+    <div class="week big">
+      {% for d in strip %}<div class="wd{{ ' on' if d.on }}{{ ' today' if d.today }}"><i>{% if d.on %}{{ icon('check', 16) }}{% endif %}</i><span>{{ d.label }}</span></div>{% endfor %}
+    </div>
+  </section>
+
+  <div class="agrid">
+    {% for a in ach %}
+    <article class="card ach{{ '' if a.earned else ' locked' }}">
+      {% if a.new %}<span class="new-tag">Новое</span>{% endif %}
+      <span class="ach-ico big k-{{ a.icon }}">{{ icon(a.icon, 30) }}</span>
+      <h3>{{ a.title }}</h3>
+      <p class="muted">{{ a.desc }}</p>
+      {% if a.earned %}<p class="got">Получено {{ a.earned_at|fmtdate }}</p>
+      {% else %}<i class="meter"><b style="width: {{ a.pct }}%"></b></i><p class="muted">{{ a.cur }} из {{ a.target }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

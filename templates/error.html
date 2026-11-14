@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Ошибка {{ code }}{% endblock %}
+{% block bodyclass %}p-portal p-login{% endblock %}
+{% block content %}
+<main class="login-wrap">
+  <section class="card login-card center">
+    <b class="err-code">{{ code }}</b>
+    <h1>{{ msg }}</h1>
+    <a class="pbtn primary" href="/">На главную</a>
+  </section>
+</main>
+{% endblock %}

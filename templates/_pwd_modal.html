@@ -1,0 +1,15 @@
+<dialog id="pwd-modal">
+  <form class="modal" id="pwd-form" data-api="x" data-method="POST" data-toast="Пароль изменён" method="dialog">
+    <h3>Новый пароль</h3>
+    <p class="note" id="pwd-who"></p>
+    <label>Пароль (не короче 6 символов)
+      <input class="mi" name="password" type="text" minlength="6" required autocomplete="new-password">
+    </label>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <span style="flex:1"></span>
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Сохранить</button>
+    </div>
+  </form>
+</dialog>

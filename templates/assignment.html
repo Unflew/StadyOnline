@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }} — {{ c.title }}{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  {% include "_head.html" %}
+  {% include "_tabs.html" %}
+
+  <section class="card pcard">
+    <a class="link back" href="/course/{{ c.id }}/tasks">← Все задания курса</a>
+    <h2 class="big">{{ a.title }}</h2>
+    <p class="muted">{{ module.title if module else 'Без модуля' }} · максимум {{ a.max_score }} баллов{% if a.due_date %} · срок {{ a.due_date|fmtdate }}{% endif %}{% if a.answer_key %} · автопроверка{% endif %}</p>
+    {% if a.description %}<p class="cond">{{ a.description }}</p>{% endif %}
+  </section>
+
+  <div class="tiles">
+    <div class="card tile"><span class="tl">Сдали</span><b>{{ st.n_sub }}<span class="of"> из {{ st.enrolled }}</span></b><small>выполнили: {{ st.passed }}</small></div>
+    <div class="card tile"><span class="tl">Ждут проверки</span><b class="{{ 'warn' if st.pending else '' }}">{{ st.pending }}</b><small>на доработке: {{ st.returned }}</small></div>
+    <div class="card tile"><span class="tl">Средний балл</span><b>{% if st.avg_pct is not none %}{{ st.avg_pct }}%{% else %}—{% endif %}</b><small>попыток в среднем: {{ st.avg_attempts if st.avg_attempts is not none else '—' }}</small></div>
+    <div class="card tile"><span class="tl">Сложность</span><b><span class="pill lvl-{{ st.level or 'none' }}">{{ st.label }}</span></b><small>{% if st.index is not none %}индекс {{ st.index }} из 100{% else %}мало данных{% endif %}</small></div>
+  </div>
+
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>Работы учеников</h2><p class="muted">Сначала те, что ждут проверки</p></div></div>
+    <div class="ptable" style="--cols: minmax(0,1fr) 150px 80px 110px 150px 120px">
+      <div class="pt-head"><span>Ученик</span><span>Статус</span><span>Попыток</span><span>Баллы</span><span>Сдано</span><span></span></div>
+      {% for r in rows %}
+      <div class="pt-row">
+        <span>{{ r.full_name }}</span>
+        <span>{% if r.state == 'none' %}<span class="pill p-gray">Не сдано</span>
+              {% elif r.state == 'pending' %}<span class="pill p-yellow">На проверке</span>
+              {% elif r.state == 'returned' %}<span class="pill p-red">На доработке</span>
+              {% elif r.state == 'failed' %}<span class="pill p-red">Не засчитано</span>
+              {% else %}<span class="pill p-green">Выполнено</span>{% endif %}</span>
+        <span>{{ r.attempts or '—' }}</span>
+        <span>{% if r.score is not none %}{{ r.score }} / {{ a.max_score }}{% else %}—{% endif %}</span>
+        <span class="muted">{{ r.submitted_at|fmtdt if r.submitted_at else '—' }}</span>
+        <span class="pt-actions">{% if r.sub_id %}<button class="pbtn sm {{ 'primary' if r.state == 'pending' else 'ghost' }}" type="button" data-grade="{{ r.sub_id }}" data-r='{{ r.review|tojson }}'>{{ 'Проверить' if r.state == 'pending' else 'Открыть' }}</button>{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<dialog id="grade-modal" class="wide">
+  <form class="modal" id="grade-form" method="dialog">
+    <h3 id="grade-heading">Работа ученика</h3>
+    <div>
+      <span class="lbl">Ответ ученика <em id="grade-attempts"></em></span>
+      <pre class="answer" id="grade-answer"></pre>
+    </div>
+    <div class="row2">
+      <label>Оценка (из {{ a.max_score }})<input class="mi" type="number" name="score" id="grade-score" min="0" max="{{ a.max_score }}"></label>
+      <span></span>
+    </div>
+    <label>Комментарий ученику<textarea class="mi ta sm" name="feedback" id="grade-feedback" maxlength="2000" placeholder="Что хорошо, что исправить"></textarea></label>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <button class="mb ghost" type="button" data-close>Закрыть</button>
+      <span style="flex:1"></span>
+      <button class="mb danger-link" type="submit" data-action="return">Вернуть на доработку</button>
+      <button class="mb primary" type="submit" data-action="grade">Поставить оценку</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

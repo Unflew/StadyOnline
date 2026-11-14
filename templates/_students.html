@@ -1,0 +1,28 @@
+<div class="t-head">
+  <span>Студент</span><span>Запись</span><span>Прогресс</span><span>Статус</span>
+</div>
+{% for r in rows %}
+<div class="t-row">
+  <span class="t-name">{{ r.full_name|short }}</span>
+  <span class="t-date">{{ r.enrolled_at|fmtdate }}</span>
+  <span class="t-prog">
+    <i class="bar"><b class="{{ 'ok' if r.status == 'finished' else 'bad' if r.status in ('behind','failed') else '' }}" style="width: {{ r.progress }}%"></b></i>
+    <em>{{ r.progress }}%</em>
+  </span>
+  <span><span class="spill st-{{ r.status }}">{{ STATUS_LABELS[r.status] }}</span></span>
+  <div class="menu-wrap t-menu">
+    <button class="dots-btn" type="button" aria-label="Действия" aria-haspopup="true"><i></i><i></i><i></i></button>
+    <div class="menu" role="menu">
+      {% if r.status != 'finished' %}<button type="button" data-status-url="/api/enrollments/{{ r.id }}" data-status="finished">Отметить завершившим</button>{% endif %}
+      {% if r.status not in ('behind', 'finished') %}<button type="button" data-status-url="/api/enrollments/{{ r.id }}" data-status="behind">Отметить отстающим</button>{% endif %}
+      {% if r.status in ('behind', 'finished') %}<button type="button" data-status-url="/api/enrollments/{{ r.id }}" data-status="learning">Вернуть в обучение</button>{% endif %}
+      {% if r.user_id %}<button type="button" data-pwd="/api/users/{{ r.user_id }}/password" data-who="{{ r.full_name }} · логин: {{ r.login }}">Сбросить пароль</button>{% endif %}
+      <button type="button" class="danger" data-delete="/api/enrollments/{{ r.id }}" data-confirm="Отчислить {{ r.full_name|short }} с курса?">Отчислить</button>
+    </div>
+  </div>
+</div>
+{% else %}
+<p class="t-empty">{% if q %}По запросу «{{ q }}» никого не нашли.{% else %}На курсе пока нет студентов.{% endif %}</p>
+{% endfor %}
+<span class="a t-count">Показано {{ rows|length }} из {{ total }}</span>
+{% if total > 5 %}<button class="a t-all link" type="button" data-toggle-all>{{ 'Свернуть' if show_all else 'Все студенты' }}</button>{% endif %}

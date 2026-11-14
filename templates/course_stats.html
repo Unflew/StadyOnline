@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Статистика — {{ c.title }}{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  {% include "_head.html" %}
+  {% include "_tabs.html" %}
+
+  <div class="tiles">
+    <div class="card tile"><span class="tl">Средний прогресс</span><b>{{ summary.avg_progress }}%</b><small>{{ summary.students }} {{ plural(summary.students, ('ученик', 'ученика', 'учеников')) }} на курсе</small></div>
+    <div class="card tile"><span class="tl">Средний балл</span><b>{% if summary.avg_score is not none %}{{ summary.avg_score }}%{% else %}—{% endif %}</b><small>по проверенным заданиям</small></div>
+    <div class="card tile"><span class="tl">Выполнение заданий</span><b>{{ summary.completion }}%</b><small>от всех возможных сдач</small></div>
+    <div class="card tile"><span class="tl">Ждут проверки</span><b class="{{ 'warn' if summary.pending else '' }}">{{ summary.pending }}</b><small>{% if summary.pending %}<a class="link" href="/course/{{ c.id }}/tasks">Открыть задания</a>{% else %}всё проверено{% endif %}</small></div>
+  </div>
+
+  <div class="two-col">
+    <section class="card pcard">
+      <div class="pc-head"><div><h2>Активность за 14 дней</h2><p class="muted">Сколько учеников заходили или сдавали работы, и сколько было сдач</p></div>
+        <div class="legend"><span><i class="lg-a"></i>Активные ученики</span><span><i class="lg-s"></i>Сдачи</span></div></div>
+      <div class="chart" role="img" aria-label="Активность учеников по дням за последние 14 дней">
+        {% for d in days %}
+        <div class="cday" title="{{ d.date.strftime('%d.%m') }}: активных {{ d.active }}, сдач {{ d.subs }}">
+          <div class="cbars"><i class="ca" style="height: {{ d.h_active }}px"></i><i class="cs" style="height: {{ d.h_subs }}px"></i></div>
+          <span class="{{ 'wk' if d.date.weekday() >= 5 }}">{{ d.date.strftime('%d') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card pcard">
+      <div class="pc-head"><div><h2>Требуют внимания</h2><p class="muted">Не заходили 3 дня и больше</p></div></div>
+      {% set risky = students|selectattr('attention')|list %}
+      {% for s in risky[:6] %}
+        <div class="risk"><span class="avatar sm">{{ s.name.split()[0][0] }}{{ s.name.split()[1][0] if s.name.split()|length > 1 }}</span><div><b>{{ s.name|short }}</b><small>был(а) {{ s.last_label }} · прогресс {{ s.progress }}%</small></div></div>
+      {% else %}
+        <p class="empty">Все ученики на связи.</p>
+      {% endfor %}
+      {% if risky|length > 6 %}<p class="muted" style="margin-top:8px">и ещё {{ risky|length - 6 }}…</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>Сложность заданий</h2><p class="muted">Считается по тому, как задание выполнили ученики. Самые сложные — сверху</p></div></div>
+    {% if ranked %}
+    <div class="ptable" style="--cols: minmax(0,1fr) 120px 90px 96px 104px 170px">
+      <div class="pt-head"><span>Задание</span><span>Средний балл</span><span>Попыток</span><span>Не сдали с 1 раза</span><span>Выполнили</span><span>Сложность</span></div>
+      {% for a in ranked %}
+      <div class="pt-row">
+        <span class="pt-title"><a href="/assignment/{{ a.id }}">{{ a.title }}</a><small>{{ a.module_title or 'Без модуля' }}</small></span>
+        <span>{% if a.avg_pct is not none %}{{ a.avg_pct }}%{% else %}—{% endif %}</span>
+        <span>{{ a.avg_attempts if a.avg_attempts is not none else '—' }}</span>
+        <span>{% if a.fail_pct is not none %}{{ a.fail_pct }}%{% else %}—{% endif %}</span>
+        <span>{{ a.completion }}%</span>
+        <span class="diff"><i class="meter"><b class="lvl-bar-{{ a.level or 'none' }}" style="width: {{ a.index or 0 }}%"></b></i><span class="pill lvl-{{ a.level or 'none' }}">{{ a.label }}{% if a.index is not none %} · {{ a.index }}{% endif %}</span></span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="note" style="margin-top:14px">Индекс сложности (0–100): 45% — насколько мало баллов набирают в среднем, 25% — доля неудачных попыток (в том числе «на доработке»), 15% — сколько попыток требуется, 15% — какая доля учеников задание так и не выполнила. Меньше 16 — лёгкое, до 27 — среднее, выше — сложное. Нужно минимум 3 проверенные попытки.</p>
+    {% else %}
+    <p class="empty">Заданий пока нет — статистику сложности покажем, когда появятся первые сдачи.</p>
+    {% endif %}
+  </section>
+
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>Ученики</h2><p class="muted">Как каждый ученик справляется с заданиями и как часто заходит</p></div></div>
+    <div class="ptable" style="--cols: minmax(0,1.2fr) 190px 90px 90px 120px 70px 100px">
+      <div class="pt-head"><span>Ученик</span><span>Прогресс</span><span>Задания</span><span>Ср. балл</span><span>Последний вход</span><span>Дней/14</span><span>Статус</span></div>
+      {% for s in students %}
+      <div class="pt-row">
+        <span>{{ s.name }}</span>
+        <span class="avg"><i class="meter"><b class="{{ 'ok' if s.status == 'finished' else 'bad' if s.status in ('behind','failed') else '' }}" style="width: {{ s.progress }}%"></b></i><em>{{ s.progress }}%</em></span>
+        <span>{{ s.done }} / {{ s.total }}{% if s.pending %} <small class="warn" title="Ждут проверки">·{{ s.pending }}</small>{% endif %}</span>
+        <span>{% if s.avg_pct is not none %}{{ s.avg_pct }}%{% else %}—{% endif %}</span>
+        <span class="{{ 'warn' if s.attention else 'muted' }}">{{ s.last_label }}</span>
+        <span>{{ s.active14 }}</span>
+        <span><span class="spill st-{{ s.status }}">{{ STATUS_LABELS[s.status] }}</span></span>
+      </div>
+      {% else %}
+      <p class="empty">На курсе пока нет студентов.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

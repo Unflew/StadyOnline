@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block bodyclass %}p-portal p-login{% endblock %}
+{% block content %}
+<main class="login-wrap">
+  <form class="card login-card" method="post" action="/login" autocomplete="on">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <h1>Вход в личный кабинет</h1>
+    <p class="muted">Введите логин и пароль, которые выдал администратор или куратор.</p>
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <label class="lf">Логин
+      <input class="mi" name="login" value="{{ login }}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+    </label>
+    <label class="lf">Пароль
+      <input class="mi" name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <label class="check"><input type="checkbox" name="remember" value="1" checked> Запомнить меня на 30 дней</label>
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="pbtn primary wide" type="submit">Войти</button>
+  </form>
+</main>
+{% endblock %}

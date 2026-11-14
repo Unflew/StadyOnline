@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ t.title }}{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  <a class="link back" href="/me/tasks">← Все задания</a>
+  <div class="task-cols">
+    <section class="card pcard">
+      <p class="muted">{{ t.course_title }}{% if t.module_title %} · {{ t.module_title }}{% endif %}</p>
+      <h1 class="big">{{ t.title }}</h1>
+      {% if t.description %}<p class="cond">{{ t.description }}</p>{% endif %}
+
+      {% if t.state == 'done' %}
+        <p class="banner ok static">Задание выполнено — {{ t.score }} из {{ t.max_score }} баллов.</p>
+        {% if t.answer %}<span class="lbl">Ваш ответ</span><pre class="answer">{{ t.answer }}</pre>{% endif %}
+      {% elif t.state == 'pending' %}
+        <p class="banner wait static">Работа отправлена и ждёт проверки куратора.</p>
+        <span class="lbl">Ваш ответ</span><pre class="answer">{{ t.answer }}</pre>
+      {% elif t.locked %}
+        <p class="banner wait static">Курс начнётся {{ t.start_date|fmtdate }} — отправлять ответы можно будет с этого дня.</p>
+      {% else %}
+        {% if t.state in ('returned', 'failed') %}
+        <p class="banner bad static">{{ 'Куратор вернул работу на доработку.' if t.state == 'returned' else 'Задание не засчитано — набрано меньше ' ~ PASS_PCT ~ '% баллов.' }} Исправьте и отправьте снова.</p>
+        {% endif %}
+        <form id="submit-form" data-aid="{{ t.id }}">
+          <label class="lf">Ваш ответ
+            <textarea class="mi ta" name="answer" required maxlength="5000" placeholder="{{ 'Введите ответ' if t.auto else 'Вставьте решение или ссылку на него' }}">{{ t.answer if t.state in ('returned', 'failed') and not t.auto else '' }}</textarea>
+          </label>
+          <p class="form-error" hidden></p>
+          <button class="pbtn primary" type="submit">{{ 'Отправить повторно' if t.state != 'new' else 'Отправить' }}</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <aside class="card pcard side">
+      <h3>Статус</h3>
+      <p><span class="pill {{ {'new': 'p-blue', 'pending': 'p-yellow', 'returned': 'p-red', 'failed': 'p-red', 'done': 'p-green'}[t.state] }}">{{ t.state_label }}</span></p>
+      <dl>
+        <dt>Максимум</dt><dd>{{ t.max_score }} баллов</dd>
+        <dt>Срок сдачи</dt><dd class="{{ 'warn' if t.overdue }}">{{ t.due_ru or 'не ограничен' }}{{ ' — просрочено' if t.overdue }}</dd>
+        {% if t.score is not none %}<dt>Оценка</dt><dd>{{ t.score }} из {{ t.max_score }}</dd>{% endif %}
+        {% if t.attempts %}<dt>Попыток</dt><dd>{{ t.attempts }}</dd>{% endif %}
+        <dt>Проверка</dt><dd>{{ 'автоматическая' if t.auto else 'куратором' }}</dd>
+      </dl>
+      {% if t.feedback %}<h3>Комментарий</h3><p class="feedback">{{ t.feedback }}</p>{% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Задания{% endblock %}
+{% block bodyclass %}p-portal{% endblock %}
+{% block content %}
+<div class="pwrap">
+  <div class="ph"><div><h1>Мои задания</h1><p class="muted">Откройте задание, чтобы прочитать условие и отправить ответ.</p></div></div>
+
+  <nav class="card chips" aria-label="Фильтр заданий">
+    {% for key, label in [('all', 'Все'), ('todo', 'К выполнению'), ('fix', 'Доработать'), ('pending', 'На проверке'), ('done', 'Выполнено')] %}
+    <a class="chip{{ ' on' if f == key }}" href="/me/tasks{{ '' if key == 'all' else '?f=' ~ key }}">{{ label }} <em>{{ counts[key] }}</em></a>
+    {% endfor %}
+  </nav>
+
+  {% for grp in groups %}
+  <section class="card pcard">
+    <div class="pc-head"><div><h2>{{ grp.title }}</h2></div></div>
+    {% for t in grp["items"] %}
+    <a class="trow" href="/me/tasks/{{ t.id }}">
+      <span class="tr-main"><b>{{ t.title }}</b><small>{{ t.module_title or 'Без модуля' }}{% if t.auto %} · автопроверка{% endif %}</small></span>
+      <span class="{{ 'warn' if t.overdue else 'muted' }}">{% if t.due_ru %}{{ 'просрочено · ' if t.overdue }}до {{ t.due_ru }}{% endif %}</span>
+      <span class="muted">{% if t.score is not none %}{{ t.score }} / {{ t.max_score }}{% endif %}</span>
+      <span class="pill {{ {'new': 'p-blue', 'pending': 'p-yellow', 'returned': 'p-red', 'failed': 'p-red', 'done': 'p-green'}[t.state] }}">{{ t.state_label }}</span>
+    </a>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="card pcard"><p class="empty">{% if f == 'all' %}Заданий пока нет.{% else %}В этой категории заданий нет.{% endif %}</p></section>
+  {% endfor %}
+</div>
+{% endblock %}

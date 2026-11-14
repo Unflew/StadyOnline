@@ -1,0 +1,16 @@
+<div class="cal-navrow">
+  <button class="cal-nav l" type="button" aria-label="Предыдущий месяц" data-y="{{ cal.prev[0] }}" data-m="{{ cal.prev[1] }}">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <span class="cal-month">{{ cal.name }}{% if cal.show_year %} {{ cal.year }}{% endif %}</span>
+  <button class="cal-nav r" type="button" aria-label="Следующий месяц" data-y="{{ cal.next[0] }}" data-m="{{ cal.next[1] }}">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+<div class="cal-grid">
+  {% for w in cal.weekdays %}<span class="cal-cell{% if loop.index > 5 %} we{% endif %}">{{ w }}</span>{% endfor %}
+  {% for d in cal.days %}
+    {% if d %}<span class="cal-cell{% if d.weekend %} we{% endif %}{% if d.cls %} {{ d.cls }}{% endif %}{% if d.today %} today{% endif %}"{% if d.title %} title="{{ d.title }}"{% endif %}>{{ d.num }}</span>
+    {% else %}<span class="cal-cell"></span>{% endif %}
+  {% endfor %}
+</div>

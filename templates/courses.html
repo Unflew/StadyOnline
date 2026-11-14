@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Курсы{% endblock %}
+{% block bodyclass %}p-list{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="cols">
+    <div class="col-l">
+
+      <section class="card f-card">
+        <h1 class="a f-title">{{ 'Курсы программирования' if is_admin else 'Мои курсы' }}</h1>
+        <span class="a f-count">Всего: {{ courses|length }}</span>
+        {% if is_admin %}<button class="a f-new" type="button" data-open="new-course">+ Создать курс</button>{% endif %}
+        <form class="f-form" method="get" action="/" id="filters">
+          <label class="ctl search">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7.500" cy="7.500" r="5.500" stroke="#8A93A6" stroke-width="1.800"/><path d="m12 12 4 4" stroke="#8A93A6" stroke-width="1.800" stroke-linecap="round"/></svg>
+            <input type="search" name="q" value="{{ q }}" placeholder="Поиск по названию" autocomplete="off">
+          </label>
+          <span class="ctl sel w133"><select name="status" data-auto>
+            <option value="">Статус: Все</option>
+            {% for k, v in COURSE_PILL.items() %}<option value="{{ k }}"{% if status == k %} selected{% endif %}>Статус: {{ v }}</option>{% endfor %}
+          </select></span>
+          {% if is_admin %}<span class="ctl sel w142"><select name="curator" data-auto>
+            <option value="0">Куратор: Все</option>
+            {% for cu in curators %}<option value="{{ cu.id }}"{% if cur == cu.id %} selected{% endif %}>Куратор: {{ cu.name }}</option>{% endfor %}
+          </select></span>{% endif %}
+          <span class="ctl sel w158"><select name="sort" data-auto>
+            <option value="new"{% if sort == 'new' %} selected{% endif %}>Сначала новые</option>
+            <option value="old"{% if sort == 'old' %} selected{% endif %}>Сначала старые</option>
+            <option value="title"{% if sort == 'title' %} selected{% endif %}>По названию</option>
+          </select></span>
+        </form>
+      </section>
+
+      <div class="clist">
+      {% for c in courses %}
+        <article class="card course s-{{ c.status }}">
+          <div class="bar-clip"><i></i></div>
+          <h2 class="a c-title">{{ c.title }}</h2>
+          <p class="a c-dates">{{ c.span }}</p>
+          <p class="a c-cur">Куратор: {{ c.curator }}</p>
+          <span class="a c-pill">{{ c.pill }}</span>
+
+          <p class="a c-lbl">Учащихся</p>
+          <p class="a c-num"><b>{{ c.enrolled }}</b><span>из {{ c.capacity }}</span></p>
+          <i class="a c-bar"><b style="width: {{ c.fill }}%"></b></i>
+          <p class="a c-state">{{ c.label }}</p>
+
+          <a class="a btn-main" href="/course/{{ c.id }}">Управлять</a>
+          <div class="a menu-wrap c-menu">
+            <button class="dots-btn" type="button" aria-label="Действия с курсом" aria-haspopup="true"><i></i><i></i><i></i></button>
+            <div class="menu" role="menu">
+              <a href="/course/{{ c.id }}">Открыть курс</a>
+              {% if is_admin %}<button type="button" class="danger" data-delete="/api/courses/{{ c.id }}"
+                      data-confirm="Удалить курс «{{ c.title }}» вместе со студентами, заданиями и событиями?">Удалить курс</button>{% endif %}
+            </div>
+          </div>
+        </article>
+      {% else %}
+        <section class="card c-empty">{% if q or status or cur %}<b>Курсы не найдены</b><span>Измените запрос или фильтры.</span>{% elif is_admin %}<b>Курсов пока нет</b><span>Нажмите «+ Создать курс» и назначьте куратора.</span>{% else %}<b>Вам пока не назначили курсы</b><span>Курс и доступ к нему выдаёт администратор.</span>{% endif %}</section>
+      {% endfor %}
+      </div>
+    </div>
+
+    <aside class="col-r">
+      <section class="card cal-card" id="calendar">
+        <h3 class="a r-title">Календарь</h3>
+        <div id="calendar-body">{% include "_calendar.html" %}</div>
+      </section>
+
+      <section class="card rate-card">
+        <h3 class="a r-title">Рейтинг курсов</h3>
+        <button class="a rate-dots" type="button" aria-label="Меню"><i></i><i></i><i></i></button>
+        {% for r in rating %}
+          <div class="rate-row" style="top: {{ 57 + 37 * loop.index0 }}px">
+            <span class="rk rk{{ loop.index }}">{{ loop.index }}</span>
+            <a class="rn" href="/course/{{ r.id }}">{{ r.title }}</a>
+            <span class="rs">{{ r.reviews }} {{ plural(r.reviews, ('отзыв', 'отзыва', 'отзывов')) }}</span>
+            <b class="rv">{{ '%.1f'|format(r.rating) }}</b>
+            <svg class="rstar" width="13" height="12" viewBox="0 0 13 12"><path d="M6.500 0 8.400 4.100 12.900 4.600 9.600 7.600 10.500 12 6.500 9.800 2.500 12l.9-4.400L.1 4.600l4.500-.5L6.500 0Z" fill="#F2B51D"/></svg>
+          </div>
+        {% endfor %}
+      </section>
+    </aside>
+  </div>
+
+  <section class="card ev-card">
+    <h3 class="a ev-title">Последние события</h3>
+    <span class="a ev-all">Все события<svg width="8" height="12" viewBox="0 0 8 12" fill="none"><path d="m1.500 1.500 4.500 4.500-4.500 4.500" stroke="#3B6EF5" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <div class="ev-list">
+      {% for ev in feed %}
+        {% set ic = EVENT_ICONS.get(ev.kind, ('blue', '•')) %}
+        <div class="ev-row">
+          <span class="ev-ico {{ ic[0] }}">{{ ic[1] }}</span>
+          <p class="ev-text">{{ ev.text|bold }}</p>
+          <span class="ev-time">{{ ev.created_at|rel }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  <div class="foot">©2026 STANKIN</div>
+</div>
+
+{% if is_admin %}
+<dialog id="new-course" class="wide">
+  <form class="modal" data-api="/api/courses" data-method="POST" method="dialog">
+    <h3>Новый курс</h3>
+    <label>Название<input class="mi" name="title" required maxlength="80" autocomplete="off"></label>
+    <div class="row2">
+      <label>Направление<input class="mi" name="direction" maxlength="60" autocomplete="off" placeholder="Например, Программирование"></label>
+      <label>Куратор
+        <select class="mi" name="curator_id" required>
+          {% for cu in curators %}<option value="{{ cu.id }}">{{ cu.name }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="row3">
+      <label>Дата начала<input class="mi" name="start_date" placeholder="ДД.ММ.ГГГГ" inputmode="numeric" required></label>
+      <label>Дата окончания<input class="mi" name="end_date" placeholder="ДД.ММ.ГГГГ" inputmode="numeric" required></label>
+      <label>Вместимость<input class="mi" type="number" name="capacity" min="1" max="500" value="25" required></label>
+    </div>
+    <label>Описание<input class="mi" name="description" maxlength="400" autocomplete="off"></label>
+    <p class="note">Куратор получит доступ только к этому курсу. Нового куратора можно завести в разделе «Пользователи».</p>
+    <p class="form-error" hidden></p>
+    <div class="modal-actions">
+      <span style="flex:1"></span>
+      <button class="mb ghost" type="button" data-close>Отмена</button>
+      <button class="mb primary" type="submit">Создать курс</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}
